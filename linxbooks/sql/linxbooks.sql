@@ -1253,7 +1253,7 @@ CREATE TABLE IF NOT EXISTS `process_checklist_item_rel` (
 -- Table structure for table `yiisession`
 --
 
-CREATE TABLE IF NOT EXISTS `yiisession` (
+CREATE TABLE IF NOT EXISTS `YiiSession` (
   `id` char(32) NOT NULL,
   `expire` int(11) DEFAULT NULL,
   `data` longblob
