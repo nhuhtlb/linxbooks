@@ -36,7 +36,28 @@ $form=$this->beginWidget('bootstrap.widgets.TbActiveForm', array(
 		'enableAjaxValidation'=>false,
 		'type'=>'horizontal',
 ));
+?>
+<!--<div id="container-invoice-customer-subject"  style="float: left;">
+   
+    <?php
+//        $this->widget('editable.EditableField', array(
+//            'type'        => 'textarea',
+//            'inputclass'  => 'input-large-textarea',
+//            'emptytext'   => 'Enter invoice subject',
+//            'model'       => $model,
+//            'attribute'   => 'lb_invoice_subject',
+//            'url'         => $model->getActionURLNormalized('ajaxUpdateField'),
+//            'placement'   => 'right',
+//            //'showbuttons' => 'bottom',
+//            'htmlOptions' => array('class'=>'lb_edit_table'),
+//            'options'	=> array(
+//            ),
+//        ));
+    ?>
+</div>-->
+<br/>
 
+<?php
 /**
 LineItem Grid's $data is LbInvoiceItem
 Each line item's fields (description, quantity, unit price and total) 
@@ -45,7 +66,7 @@ are marked by the line item's primary key.
 $grid_id = 'invoice-line-items-grid-'.$model->lb_record_primary_key;
 $this->widget('bootstrap.widgets.TbGridView', array(
 		'id' => $grid_id,
-        'type'=>'bordered',
+     //   'type'=>'bordered',
 		'dataProvider' => $invoiceItemModel->getInvoiceItems($model->lb_record_primary_key),
 		'columns' => array(
 				array(
@@ -109,7 +130,7 @@ $this->widget('bootstrap.widgets.TbGridView', array(
 										"line_item_field"=>"item-quantity"))
 						',
 						'htmlOptions'=>array('width'=>'50','style'=>'text-align: right;'),
-                        'headerHtmlOptions'=>array('class'=>'lb-grid-header'),
+                        'headerHtmlOptions'=>array('class'=>'lb-grid-header lb-grid-header_th'),
 				),
 				array(
 						'header' => Yii::t('lang','Unit Price'),
@@ -125,7 +146,7 @@ $this->widget('bootstrap.widgets.TbGridView', array(
 										"line_item_field"=>"item-value"))
 						',
 						'htmlOptions'=>array('width'=>'100','style'=>'text-align: right;'),
-                        'headerHtmlOptions'=>array('class'=>'lb-grid-header'),
+                        'headerHtmlOptions'=>array('class'=>'lb-grid-header lb-grid-header_th'),
 				),
 				array(
 						'header' => Yii::t('lang','Total'),
@@ -141,7 +162,7 @@ $this->widget('bootstrap.widgets.TbGridView', array(
 										"line_item_field"=>"item-total"))
 						',
 						'htmlOptions'=>array('width'=>'90','style'=>'text-align: right;'),
-                        'headerHtmlOptions'=>array('class'=>'lb-grid-header'),
+                        'headerHtmlOptions'=>array('class'=>'lb-grid-header lb-grid-header_th'),
 				),
 		),
 ));
@@ -505,6 +526,7 @@ $method = LBPayment::model()->method;
 $grid_payment_id = 'invoice-line-payment-grid-'.$model->lb_record_primary_key;
 $this->widget('bootstrap.widgets.TbGridView', array(
 		'id' => $grid_payment_id,
+                'htmlOptions'=>array('class'=>'items table '),
         'type'=>'bordered',
 		'dataProvider' => $PaymentInvoice,
                 
@@ -640,6 +662,7 @@ $this->widget('bootstrap.widgets.TbGridView', array(
                     
 	),
 ));
+echo '</br>';
 echo CHtml::link(Yii::t('lang','Add Payment'), '#', array(
 	'onclick'=>'addItemPayment('.$model->lb_record_primary_key.'); return false;'
 ));
@@ -703,7 +726,7 @@ $this->widget('editable.EditableField', array(
     'url'         => $model->getActionURLNormalized('ajaxUpdateField'),
     'placement'   => 'right',
     //'showbuttons' => 'bottom',
-    'htmlOptions' => array('style'=>'text-decoration: none; border-bottom: none; color: #777'),
+    'htmlOptions' => array('class'=>'lb_edit_table'),
     'options'	=> array(
     ),
     'onShown'=> 'js:function(){
@@ -746,7 +769,7 @@ echo '</td></tr></tbody></table>';
 //echo '</td></tr></tbody></table>';
 echo '</div>';// end note div
 
-
+echo '<br/>';
 
 /********************************************************************************
  * =============================== INTERANL NOTE SECTION ================================
@@ -769,7 +792,7 @@ $this->widget('editable.EditableField', array(
     'url'         => $model->getActionURLNormalized('ajaxUpdateField'),
     'placement'   => 'right',
     //'showbuttons' => 'bottom',
-    'htmlOptions' => array('style'=>'text-decoration: none; border-bottom: none; color: #777'),
+    'htmlOptions' => array('class'=>'lb_edit_table'),
     'options'	=> array(
     ),
     'onShown'=> 'js:function(){
@@ -782,8 +805,15 @@ $this->widget('editable.EditableField', array(
 ));
 echo '</td></tr></tbody></table>';
 echo '</div>';// end note div
+/********************************************************************************
+ * =============================== ATTACHMENT ================================
+ *******************************************************************************/
+?>
 
-
+<div class="view_document" id="view_document">
+        <?php $this->renderPartial('lbDocument.views.default.view',array('id'=>$model->lb_record_primary_key,'module_name'=>'lbInvoice')); ?>
+</div>
+<?php
 echo '<div style="display: block; clear: both; text-align: center; padding-top: 40px;" class="">';
 
 if($canEdit)
@@ -816,8 +846,13 @@ if($canEdit)
                 'success' => 'function(data, status, obj) {
                     if(data != null)
                     {
+                    
                         var dataJSON = jQuery.parseJSON(data);
+                     
                         $("#lb_invocie_status").html(dataJSON.lb_invoice_status_code);
+                        $(".lb_badge_status").html(dataJSON.lb_invoice_status_code);
+                        $("#invoice_no_change").html(dataJSON.lb_invoice_no);
+                        
                         onConfirmInvoiceSuccessful(dataJSON);
                     }
                             }'
@@ -836,10 +871,24 @@ if($canEdit)
             $model->getActionURLNormalized('ajaxUpdateStatus',
                 array('id'=>$model->lb_record_primary_key,'status'=>  LbInvoice::LB_INVOICE_STATUS_CODE_WRITTEN_OFF)),
             array(
-                
+                'success' => 'function(data, status, obj) {
+                    if(data != null)
+                    {
+                    
+                        var dataJSON = jQuery.parseJSON(data);
+                        
+                        $("#lb_invocie_status").html(dataJSON.lb_invoice_status_code);
+                        $(".lb_badge_status").html(dataJSON.lb_invoice_status_code);
+                        $("#invoice_no_change").html(dataJSON.lb_invoice_no);
+                        
+                        onConfirmInvoiceSuccessful(dataJSON);
+                    }
+                            }'
             ),//end ajax options
             array(
                 'id'=> 'btn-write-off-invoice-'.$model->lb_record_primary_key,
+                
+                
             ) // end html options
         );
     }
@@ -1200,7 +1249,8 @@ function addItemPayment(invoice_id)
     
     $.ajax({
            type:'POST',
-           url:'AjaxSavePaymentInvoice',
+           //url:'AjaxSavePaymentInvoice',
+           url:"<?php echo $this->createUrl('AjaxSavePaymentInvoice');?>",
            data:{id:id},
            beforeSend:function(){
                $('#container-invoice-line-items-section').block();

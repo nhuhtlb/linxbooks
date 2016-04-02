@@ -69,14 +69,14 @@ class LbQuotation extends CLBActiveRecord
 		// will receive user inputs.
 		return array(
 			array('lb_quotation_no, lb_quotation_date, lb_quotation_due_date,lb_quotation_status', 'required'),
-			array('lb_company_id, lb_company_address_id, lb_quotation_customer_id, lb_quotation_customer_address_id, lb_quotation_attention_id', 'numerical', 'integerOnly'=>true),
+			array('lb_company_id, lb_company_address_id, lb_quotation_customer_id, lb_quotation_customer_address_id, lb_quotation_attention_id,lb_quotation_term,lb_quotation_currency', 'numerical', 'integerOnly'=>true),
 			array('lb_quotation_no', 'length', 'max'=>50),
                         array('lb_quotation_status', 'length', 'max'=>20),
 			array('lb_quotation_subject, lb_quotation_encode', 'length', 'max'=>255),
                         array('lb_quotation_note, lb_quotation_internal_note', 'safe'),
 			// The following rule is used by search().
 			// @todo Please remove those attributes that should not be searched.
-			array('lb_record_primary_key, lb_company_id, lb_company_address_id, lb_quotation_customer_id, lb_quotation_customer_address_id, lb_quotation_attention_id, lb_quotation_no, lb_quotation_date, lb_quotation_due_date, lb_quotation_subject, lb_quotation_note, lb_quotation_status, lb_quotation_encode', 'safe', 'on'=>'search'),
+			array('lb_record_primary_key, lb_company_id, lb_company_address_id, lb_quotation_customer_id, lb_quotation_customer_address_id, lb_quotation_attention_id, lb_quotation_no, lb_quotation_date, lb_quotation_due_date, lb_quotation_subject, lb_quotation_note, lb_quotation_status, lb_quotation_encode,lb_quotation_term,lb_quotation_currency', 'safe', 'on'=>'search'),
 		);
 	}
 
@@ -119,6 +119,8 @@ class LbQuotation extends CLBActiveRecord
 			'lb_quotation_status' => Yii::t('lang','Status'),
 			'lb_quotation_encode' => Yii::t('lang','Quotation Encode'),
                         'lb_quotation_internal_note'=>Yii::t('lang','Internal Note'),
+                        'lb_quotation_term'=>  Yii::t('lang', 'Term'),
+                        'lb_quotation_currency'=>  Yii::t('lang', 'Currency'),
 		);
 	}
 
@@ -153,6 +155,8 @@ class LbQuotation extends CLBActiveRecord
 		$criteria->compare('lb_quotation_note',$this->lb_quotation_note,true);
 		$criteria->compare('lb_quotation_status',$this->lb_quotation_status);
 		$criteria->compare('lb_quotation_encode',$this->lb_quotation_encode,true);
+                $criteria->compare('lb_quotation_term',$this->lb_quotation_term,true);
+                $criteria->compare('lb_quotation_currency', $this->lb_quotation_currency, true);
                 if($status_id)
                     $criteria->compare ('lb_quotation_status', $status_id, true);
                 $criteria->order='lb_quotation_due_date ASC';
@@ -440,5 +444,90 @@ class LbQuotation extends CLBActiveRecord
             $q= LbQuotation::model()->findAll($criteria);
             return count($q);
         }
-         
+         public function ArrayStatusQuotation()
+        {
+            $arr = array();
+            $arr[self::LB_QUOTATION_STATUS_CODE_DRAFT] = 'Draft';
+            $arr[self::LB_QUOTATION_STATUS_CODE_SENT] = 'Send';
+            $arr[self::LB_QUOTATION_STATUS_CODE_APPROVED] = 'Approved';
+            $arr[self::LB_QUOTATION_STATUS_CODE_READY] = 'Ready';
+            $arr[self::LB_QUOTATION_STATUS_CODE_ACCEPTED] = 'Accepted';
+            $arr[self::LB_QUOTATION_STATUS_CODE_REJECTED] = 'Rejected';
+            $arr[self::LB_QUOTATION_STATUS_CODE_UNSUCCESSFUL] = 'Unsuccessful';
+            
+            
+            return $arr;
+        }
+        public function getAllQuotationByStatus($status_id=false,$page=10,$user_id=false)
+        {
+            // $status_id = $_REQUEST['status_id'];
+             $criteria = new CDbCriteria();
+             if(isset($status_id) && $status_id>0)
+                 $criteria->condition = 'lb_quotation_status = '.$status_id;
+             $dataProvider = new CActiveDataProvider($this,array('criteria'=>$criteria),$page,$user_id);
+            // $dataProvider = $this->getFullRecordsDataProvider($criteria);
+             return $dataProvider;
+        }
+        public function getStatusAmount($status_code,$amount){
+       $class='';
+       if($status_code == LbQuotation::LB_QUOTATION_STATUS_CODE_APPROVED){
+           $class = 'lb_grid_amount_approved';
+       }
+       else{
+           $class = 'lb_grid_amount';
+       }
+       return '<div class="'.$class.'">'.number_format($amount,2).'</div>';
+       //return $class;
+   }
+   public function getBadgeStatusView($status_code)
+    {
+        $badge_css = 'lb_badge_status';                
+        $status_name = $this->getDisplayQuotationStatus($status_code);
+        
+        return '<div class="'.$badge_css.'">'.$status_name.'</div>';
+    }
+     public function searchQuotation($search_name)
+       {
+           if(isset($_REQUEST['search_name']))
+               $search_name = $_REQUEST['search_name'];
+           $status='("'.LbQuotation::LB_QUOTATION_STATUS_CODE_DRAFT.'","'.LbQuotation::LB_QUOTATION_STATUS_CODE_ACCEPTED.'","'.LbQuotation::LB_QUOTATION_STATUS_CODE_APPROVED.'","'.LbQuotation::LB_QUOTATION_STATUS_CODE_SENT.'")'; 
+           $criteria = new CDbCriteria();
+           $criteria->select='t.*,';
+           $criteria->select .='i.lb_customer_name';
+           $criteria->order = 'lb_quotation_due_date DESC';
+           $criteria->join='LEFT JOIN lb_customers i ON i.lb_record_primary_key = t.lb_quotation_customer_id';
+           $criteria->condition = 'lb_quotation_status IN '.$status;
+           if($search_name)
+           {
+               $criteria->condition .= ' AND (lb_quotation_no LIKE "%'.$search_name.'%" OR i.lb_customer_name LIKE "%'.$search_name.'%")';
+
+           }
+          
+           return $this->findAll($criteria);
+       }
+    function getQuotationStatus($status){
+           if($status=='Draft')
+                return self::LB_QUOTATION_STATUS_CODE_DRAFT;
+            if($status=='Sent')
+                return self::LB_QUOTATION_STATUS_CODE_SENT;           
+            if($status=='Rejected')
+                return self::LB_QUOTATION_STATUS_CODE_REJECTED;           
+            if($status=='Approved')
+                return self::LB_QUOTATION_STATUS_CODE_APPROVED;            
+       }  
+       
+       
+       public function getItemsForListCode()
+        {
+           $allStatus=  $this->ArrayStatusQuotation();
+            $item=new LbQuotation();
+            $arr=array();
+            foreach($allStatus as $key=>$value)
+            {
+                 $arr[$key] = $value;
+            }
+          
+            return $arr;
+            
+        }
 }
