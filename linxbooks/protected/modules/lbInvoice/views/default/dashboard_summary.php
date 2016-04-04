@@ -6,8 +6,8 @@
  * and open the template in the editor.
  */
 $financial = UserList::model()->getItemsList('financial_year');        
-$financial_day = $financial[0]['system_list_item_day'];
-$financial_month = $financial[0]['system_list_item_month'];
+$financial_day = isset($financial[0]['system_list_item_day'])?$financial[0]['system_list_item_day']:"";
+$financial_month = isset($financial[0]['system_list_item_month'])?$financial[0]['system_list_item_month']:"";
 $now = getdate();       
 $year_prev = $now["year"]-1;
 $year_next = $now["year"]+1;
