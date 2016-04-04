@@ -16,8 +16,9 @@ $year_default=  date('Y',strtotime($date_now));
 $this->Widget('bootstrap.widgets.TbGridView',array(
             'id'=>'lb_expenses_gridview',
             'dataProvider'=>  $model,
-            'type'=>'striped bordered condensed',
+          //  'type'=>'striped bordered condensed',
             //'template' => "{items}",
+            'template' => "{items}\n{pager}\n{summary}", 
             'columns'=>array(
 
                     array(
@@ -28,12 +29,26 @@ $this->Widget('bootstrap.widgets.TbGridView',array(
                     ),
                     
                   
-                    array(
+         /*           array(
                         'header'=>Yii::t('lang','Salary'),
                         'type'=>'raw',  
                         'value'=> 'number_format(LbEmployeeSalary::model()->totalSalaryEmployee($data->lb_record_primary_key)-LbEmployeeBenefits::model()->caculatorBenefitByEmployee($data->lb_record_primary_key)-LbEmployeePayment::model()->getPaidByEmployee($data->lb_record_primary_key,'.$month_default.','.$year_default.'),2)',
                         'htmlOptions'=>array('width'=>'130'),
+                    ),*/
+                    array(
+                        'header'=>Yii::t('lang','Salary'),
+                        'type'=>'raw',  
+                        'value'=> 'number_format(LbEmployeeSalary::model()->totalSalaryEmployee($data->lb_record_primary_key)-LbEmployeeBenefits::model()->caculatorBenefitByEmployee($data->lb_record_primary_key),2)',
+                        'htmlOptions'=>array('width'=>'130'),
                     ),
+                  
+                    array(
+                        'header'=>Yii::t('lang','Pay'),
+                        'type'=>'raw',  
+                        'value'=> 'number_format(LbEmployeeSalary::model()->totalSalaryEmployee($data->lb_record_primary_key)-LbEmployeeBenefits::model()->caculatorBenefitByEmployee($data->lb_record_primary_key)-LbEmployeePayment::model()->getPaidByEmployee($data->lb_record_primary_key,'.$month_default.','.$year_default.'),2)',
+                        'htmlOptions'=>array('width'=>'130'),
+                    ),
+                    
                     
                     array(
                         'header'=>Yii::t('lang','Paid'),

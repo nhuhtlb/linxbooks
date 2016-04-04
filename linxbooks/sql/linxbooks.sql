@@ -498,14 +498,15 @@ CREATE TABLE IF NOT EXISTS `lb_next_ids` (
   `	lb_next_supplier_payment_number` int(11) NOT NULL,
   `lb_next_supplier_payment_number` int(11) NOT NULL,
   `lb_next_pv_number` int(11) NOT NULL
+  `lb_payment_vendor_number` int(12) NOT NULL
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci AUTO_INCREMENT=2 ;
 
 --
 -- Dumping data for table `lb_next_ids`
 --
 
-INSERT INTO `lb_next_ids` (`lb_record_primary_key`, `lb_next_invoice_number`, `lb_next_quotation_number`, `lb_next_payment_number`, `lb_next_contract_number`, `lb_next_expenses_number`, `lb_next_po_number`, `lb_next_supplier_invoice_number`, `	lb_next_supplier_payment_number`, `lb_next_supplier_payment_number`, `lb_next_pv_number`) VALUES
-(1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0);
+INSERT INTO `lb_next_ids` (`lb_record_primary_key`, `lb_next_invoice_number`, `lb_next_quotation_number`, `lb_next_payment_number`, `lb_next_contract_number`, `lb_next_expenses_number`, `lb_next_po_number`, `lb_next_supplier_invoice_number`, `	lb_next_supplier_payment_number`, `lb_next_supplier_payment_number`, `lb_next_pv_number`,`lb_next_ids`) VALUES
+(1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0,0);
 
 -- --------------------------------------------------------
 

@@ -11,7 +11,7 @@ $canView = BasicPermission::model()->checkModules($m, 'view');
 $model = new LbEmployee();
 echo '<div id="lb-container-header">';
             
-            echo '<div style="margin-left: -10px" class="lb-header-right"><h4>Employees</h4></div>';
+            echo '<div style="margin-left: -10px" class="lb-header-right"><h3>Employees</h3></div>';
             echo '<div class="lb-header-left">';
 //            LBApplicationUI::backButton(LbExpenses::model()->getActionURLNormalized('expenses'));
 
@@ -54,12 +54,8 @@ echo '<div align="right" >
     <input style="margin-left:72px;margin-top:6px;" type="text" id="paidForDate" class="text" value="'.date('m-Y').'"/>
 </div>';
 $employee_id = isset($_GET['employee_id']) ? $_GET['employee_id'] : 0;
-
 $employee = LbEmployee::model()->getInfoEmployee($employee_id);
-//$employee_name = $employee->employee_name;
-//var_dump($employee_name);
 $create_by = AccountProfile::model()->getFullName(Yii::app()->user->id);
-//echo date('d', strtotime(date('Y-m-d')));
 echo '<div id="show_enter_pay">';
 $date_now = date('Y-m-d');
 
@@ -69,8 +65,9 @@ $year_default=  date('Y',strtotime($date_now));
 $this->Widget('bootstrap.widgets.TbGridView',array(
             'id'=>'lb_expenses_gridview',
             'dataProvider'=>  $model->search(),
-            'type'=>'striped bordered condensed',
+          //  'type'=>'striped bordered condensed',
             //'template' => "{items}",
+            'template' => "{items}\n{pager}\n{summary}", 
             'columns'=>array(
 
                     array(
@@ -79,10 +76,15 @@ $this->Widget('bootstrap.widgets.TbGridView',array(
                         'value'=>'LBApplication::workspaceLink($data->employee_name,$data->getViewURLNormalized("update",array("id"=>$data->lb_record_primary_key)))',
                         'htmlOptions'=>array('width'=>'130'),
                     ),
-                    
-                  
                     array(
                         'header'=>Yii::t('lang','Salary'),
+                        'type'=>'raw',  
+                        'value'=> 'number_format(LbEmployeeSalary::model()->totalSalaryEmployee($data->lb_record_primary_key)-LbEmployeeBenefits::model()->caculatorBenefitByEmployee($data->lb_record_primary_key),2)',
+                        'htmlOptions'=>array('width'=>'130'),
+                    ),
+                  
+                    array(
+                        'header'=>Yii::t('lang','Pay'),
                         'type'=>'raw',  
                         'value'=> 'number_format(LbEmployeeSalary::model()->totalSalaryEmployee($data->lb_record_primary_key)-LbEmployeeBenefits::model()->caculatorBenefitByEmployee($data->lb_record_primary_key)-LbEmployeePayment::model()->getPaidByEmployee($data->lb_record_primary_key,'.$month_default.','.$year_default.'),2)',
                         'htmlOptions'=>array('width'=>'130'),
@@ -98,7 +100,7 @@ $this->Widget('bootstrap.widgets.TbGridView',array(
                     array(
                         'header'=>Yii::t('lang','Note'),
                         'type'=>'raw',  
-                        'value'=> 'CHtml::textArea("note_".$data->lb_record_primary_key,"",array("onchange"=>"addData($data->lb_record_primary_key)"))',
+                        'value'=> 'CHtml::textArea("note_".$data->lb_record_primary_key,"")',
                         'htmlOptions'=>array('width'=>'130'),  
                     ), 
                     array(
@@ -126,7 +128,7 @@ echo '<div style="text-align: center" class="control-group">
     var data_post = new Array();
     var arr_date= new Object();
     var i = 0;
-
+    var data_payment = new Array();
     $(function () {
             $('#paidForDate').datepicker({
                
@@ -165,29 +167,88 @@ echo '<div style="text-align: center" class="control-group">
     }
     
     function addData(id)
-    {
-        arr_date.employee_id=id;
-        arr_date.payment_paid=$('#paid_'+id).val();
-        arr_date.payment_note=$('#note_'+id).val();
-        
-        data_post[id]=arr_date;
-        
-        i++;
+    {          
+        data_post.push(id);
+         var payment_paid_arr = new Array();
+    //     var payment_id_arr = new Array();
+        var check_item = 0;
+        for (i = 0; i < data_post.length; i++) {        
+            var j = data_post[i];
+            payment_paid_arr[i] = $('#paid_'+j).val();           
+            if(isNaN(payment_paid_arr[i])===true){
+                check_item = 1;
+            }
+        }
+        if(check_item===1){
+            alert("Please enter Paid must is number");
+            return;
+        }
+//        var last = data_post[data_post.length - 1];
+//        for( k = 0; k < data_post.length; k++){
+//            var e = data_post[k];
+//            if(e !== last){               
+//                data_post.splice(k,1);  
+//               // payment_id_arr = data_post.splice(k,1);                           
+//            }
+//        }
+//        console.warn(last);
+//        console.warn(data_post);
+//     //   console.warn(payment_id_arr);
     }
+     function removeArray(data_post){
+          for( k = 0; k < data_post.length; k++){    
+            for(var i = k+1; i<=data_post.length-1; i++){
+                if(data_post[k]===data_post[i]){
+                   data_post.splice(i,1);                
+                    break;
+                }
+            }
+        }
+        return data_post;
+    }
+    var id_arr = new Array();
     function save_payment_employee()
     {
-        var datePaid='01-'+$('#paidForDate').val();
-        $.ajax({
-            type:'POST',
-            url:'<?php echo LbEmployee::model()->getActionURLNormalized('Payment',array()) ?>',
-            data:{LbEmployeePayment:data_post,datePaid:datePaid},
-            success:function(data){
-               
-                    alert("Success payment!");
-                    location.reload(true);
-                
+         id_arr = removeArray(data_post);
+      //  console.warn(id_arr);
+     //   return false;
+        var datePaid='01-'+$('#paidForDate').val();     
+        for (i = 0; i < id_arr.length; i++) {        
+            var j = id_arr[i];           
+            data_payment[i]={employee_id:j,
+                             payment_paid:$('#paid_'+j).val(),
+                             payment_note:$('#note_'+j).val()
+                            };
+        }
+         $.ajax({
+            type: 'POST',
+            url: '<?php echo LbEmployee::model()->getActionURLNormalized('Payment', array()) ?>',
+            data: {LbEmployeePayment: data_payment, datePaid: datePaid},
+            success: function (data) {
+
+                alert("Success payment!");
+                location.reload(true);
             }
         });
+/*     //   alert(len);
+        for(i=1; i<=data_post.length; i++){
+            var j = data_post[i-1];
+            var data_payment = new Array();
+            arr_date.employee_id=j;
+            arr_date.payment_paid=$('#paid_'+j).val();
+            arr_date.payment_note=$('#note_'+j).val();
+            data_payment[j] = arr_date;
+        $.ajax({
+            type:'POST',
+            url:'',
+            data:{LbEmployeePayment:data_payment,datePaid:datePaid},
+            success:function(data){
+                                              
+            }
+        });
+        }
+        alert("Success payment!");
+        location.reload(true);   */
     }
     function printPDF_EnterPayment(){
         var month_year = $('#paidForDate').val();
