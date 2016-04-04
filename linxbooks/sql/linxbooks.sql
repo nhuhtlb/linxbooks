@@ -1741,7 +1741,7 @@ ALTER TABLE `process_checklist_item_rel`
 --
 -- Indexes for table `yiisession`
 --
-ALTER TABLE `yiisession`
+ALTER TABLE `YiiSession`
  ADD PRIMARY KEY (`id`);
  
 --

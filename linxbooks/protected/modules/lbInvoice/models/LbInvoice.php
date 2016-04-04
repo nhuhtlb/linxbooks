@@ -70,7 +70,9 @@ class LbInvoice extends LbInvoiceGeneric
 				'lb_invoice_status_code' => Yii::t('lang','Status'),
                                 'lb_invoice_encode' => Yii::t('lang','Invoice Encode'),
                                 'lb_invoice_internal_note'=>Yii::t('lang','Internal Note'),
-                                'lb_quotation_id'=>Yii::t('lang','Quotation No')
+                                'lb_quotation_id'=>Yii::t('lang','Quotation No'),
+                                'lb_invoice_term_id'=>Yii::t('lang','Term'),
+                                'lb_invoice_currency'=>  Yii::t('lang', 'Currency'),
 		);
 	}
 
@@ -464,7 +466,7 @@ class LbInvoice extends LbInvoiceGeneric
         $dataProvider = $this->getFullRecordsDataProvider($criteria,null,$pageSize);
         return $dataProvider;
     }
-    
+  
     /**
      * Tinh total admount cua tat ca cac invoice co status Overdua, Paid, Open.
      * @param array $status value: LB_INVOICE_STATUS_CODE_DRAFT, LB_INVOICE_STATUS_CODE_OPEN, LB_INVOICE_STATUS_CODE_PAID
@@ -481,6 +483,7 @@ class LbInvoice extends LbInvoiceGeneric
             $totalAmount+=$data->total_invoice->lb_invoice_total_after_taxes;
         }
         return $totalAmount;
+        
     }
     
     /**
@@ -500,7 +503,7 @@ class LbInvoice extends LbInvoiceGeneric
         }
         return $totalAmount;
     }
-    
+  
     /**
      * Tinh total invoice payment theo date year
      * @param date $year defaul nam hien tai
@@ -715,5 +718,131 @@ class LbInvoice extends LbInvoiceGeneric
         }
         return $quotation_id;
     }
-    
+      public function getInvoiceByStatusAndYear($status, $year = false){
+        $criteria = new CDbCriteria();
+        $criteria->condition = 'lb_invoice_status_code IN '.$status;
+        if($year){
+            $criteria->condition = 'lb_invoice_status_code IN'.$status.'AND YEAR(lb_invoice_date) = "'.$year.'"';
+        }
+        return LbInvoice::model()->findAll($criteria);
+        
+    }
+    public function totalInvoiceYearToDateRevenue($status,$year = false){
+        $data = $this->getInvoiceByStatusAndYear($status, $year);
+        $totalAmount = 0;
+        foreach ($data as $value) {
+             $totalModel = LbInvoiceTotal::model()->find('lb_invoice_id='.intval($value['lb_record_primary_key']));
+            if(count($totalModel)>0)
+                $totalAmount+=$totalModel->lb_invoice_total_after_taxes;
+        //    $totalAmount+=$value->lb_invoice_total_after_taxes;
+        }        
+        return $totalAmount;
+    }
+      public function totalInvoiceOutstanding($status, $year = false){
+        $data = $this->getInvoiceByStatusAndYear($status, $year);
+        $totalAmount = 0;
+        foreach ($data as $value){
+             $totalModel = LbInvoiceTotal::model()->find('lb_invoice_id='.intval($value['lb_record_primary_key']));
+            if(count($totalModel)>0)
+                $totalAmount+=$totalModel->lb_invoice_total_outstanding;
+        }
+        return $totalAmount;
+    }
+    public function ArrayStatusInvoice()
+    {
+        $arr = array();
+        $arr[self::LB_INVOICE_STATUS_CODE_DRAFT] = 'Draft';
+        $arr[self::LB_INVOICE_STATUS_CODE_OPEN] = 'Open';
+        $arr[self::LB_INVOICE_STATUS_CODE_OVERDUE] = 'Overdue';
+       
+        
+        return $arr;
+    }
+    public function getAllInvoiceByStatus($status_id,$page=10,$user_id=false)
+   {
+       // $status_id = $_REQUEST['status_id'];
+        $criteria = new CDbCriteria();
+        $criteria->condition = 'lb_invoice_status_code IN '.$status_id;
+        $dataProvider = new CActiveDataProvider($this,array('criteria'=>$criteria),$page,$user_id);
+       // $dataProvider = $this->getFullRecordsDataProvider($criteria);
+        return $dataProvider;
+   }
+   public function getStatusAmount($status_code,$amount){
+       $class='';
+       if($status_code == LbInvoice::LB_INVOICE_STATUS_CODE_DRAFT)
+           $class = 'lb_grid_amount_draft';
+       if($status_code == LbInvoice::LB_INVOICE_STATUS_CODE_OPEN)
+           $class = 'lb_grid_amount_open';
+       if($status_code == LbInvoice::LB_INVOICE_STATUS_CODE_OVERDUE)
+           $class = 'lb_grid_amount_overdue';
+       return '<div class="'.$class.'">'.number_format($amount,2).'</div>';
+       //return $class;
+   }
+   public function getBadgeStatusView($status_code)
+    {
+        $badge_css = 'lb_badge_status';                
+        $status_name = LbInvoice::model()->getDisplayInvoiceStatus($status_code);
+        
+        return '<div class="'.$badge_css.'">'.$status_name.'</div>';
+    }
+    public function searchInvoice($search_name)
+       {
+           if(isset($_REQUEST['search_name']))
+               $search_name = $_REQUEST['search_name'];
+           $status='("'.LbInvoice::LB_INVOICE_STATUS_CODE_DRAFT.'","'.LbInvoice::LB_INVOICE_STATUS_CODE_OPEN.'","'.LbInvoice::LB_INVOICE_STATUS_CODE_OVERDUE.'")'; 
+           $criteria = new CDbCriteria();
+           $criteria->select='t.*,';
+           $criteria->select .='i.lb_customer_name';
+           $criteria->order = 'lb_invoice_due_date DESC';
+           $criteria->join='LEFT JOIN lb_customers i ON i.lb_record_primary_key = t.lb_invoice_customer_id';
+           $criteria->condition = 'lb_invoice_status_code IN '.$status;
+           if($search_name)
+           {
+               $criteria->condition .= ' AND (lb_invoice_no LIKE "%'.$search_name.'%" OR i.lb_customer_name LIKE "%'.$search_name.'%")';
+
+           }
+           //$dataProvider = new CActiveDataProvider($this,array('criteria'=>$criteria),$page,$user_id);
+
+           //return $dataProvider;
+           return LbInvoice::model()->findAll($criteria);
+       }
+    public function getInvoiceStatus($status)
+    {
+        if($status=='Draft')
+            return LbInvoice::LB_INVOICE_STATUS_CODE_DRAFT;
+        if($status=='Open')
+            return LbInvoice::LB_INVOICE_STATUS_CODE_OPEN;
+        if($status=='Overdue')
+            return LbInvoice::LB_INVOICE_STATUS_CODE_OVERDUE;
+        if($status=='Written Off')
+            return LbInvoice::LB_INVOICE_STATUS_CODE_WRITTEN_OFF;
+        if($status=='Paid')
+            return LbInvoice::LB_INVOICE_STATUS_CODE_PAID;
+    }
+    function get_check_term($date = false, $term_value = false){
+        $day_between =round((strtotime(date("Y/m/d"))-strtotime($date))/86400);
+        $term_status ="";
+        if($day_between > $term_value){
+            $term_status=LbInvoice::LB_INVOICE_STATUS_CODE_OVERDUE;
+        }else{
+            $term_status=LbInvoice::LB_INVOICE_STATUS_CODE_OPEN;
+        }
+        return $term_status;
+    }
+    function getInvoiceByPk($invoice_id){
+        $criteria = new CDbCriteria();
+        $criteria->compare('lb_record_primary_key', $invoice_id);
+        return $this->findAll($criteria);
+    }
+    function UpdateStatusInvoice($invoice_id){
+        $invoice = $this->getInvoiceByPk($invoice_id);
+        $status_update="";
+       foreach ($invoice as $value) {
+           $date = $value['lb_invoice_date'];
+           $term = $value['lb_invoice_term_id'];
+           $term_value = UserList::model()->getTerm($term);
+           $status_update = $this->get_check_term($date, $term_value);
+       }
+       return $status_update;
+    }
 }
